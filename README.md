@@ -25,7 +25,7 @@ from tqdm import tqdm
 
 ```python
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-device 
+device
 ```
 
 
@@ -55,7 +55,7 @@ plt.legend()
 
 
 
-    <matplotlib.legend.Legend at 0x292b605e0b0>
+    <matplotlib.legend.Legend at 0x23c06b67fd0>
 
 
 
@@ -75,15 +75,12 @@ class Model(torch.nn.Module):
     def __init__(self):
         super().__init__()
         self.dense1 = torch.nn.Linear(1, 10)
-        self.dense2 = torch.nn.Linear(10, 10)
-        self.dense3 = torch.nn.Linear(10, 1) 
+        self.dense2 = torch.nn.Linear(10, 1)
 
     def forward(self, x):
         out = self.dense1(x)
         out = torch.nn.functional.relu(out)
         out = self.dense2(out)
-        out = torch.nn.functional.relu(out)
-        out = self.dense3(out)
 
         return out
         
@@ -129,7 +126,7 @@ for epoch in tqdm(range(epochs)):
         optimizer.step()
 ```
 
-    100%|████████████████████████████████████████████████████████████████████████████████| 100/100 [00:03<00:00, 31.72it/s]
+    100%|████████████████████████████████████████████████████████████████████████████████| 100/100 [00:02<00:00, 36.19it/s]
     
 
 
@@ -144,7 +141,7 @@ plt.legend()
 
 
 
-    <matplotlib.legend.Legend at 0x1652a523f10>
+    <matplotlib.legend.Legend at 0x23c06ae8a30>
 
 
 
@@ -195,7 +192,7 @@ def swa(pretrained_weights, train_set, update_freq, n_steps):
 w_swa = swa(pre_train_model.state_dict(), train_set, 10, 30)
 ```
 
-    100%|██████████████████████████████████████████████████████████████████████████████████| 30/30 [00:01<00:00, 18.86it/s]
+    100%|██████████████████████████████████████████████████████████████████████████████████| 30/30 [00:00<00:00, 39.40it/s]
     
 
 create a new model and load the $w_{swa}$ weights.
@@ -220,7 +217,7 @@ plt.legend()
 
 
 
-    <matplotlib.legend.Legend at 0x2084c29ee90>
+    <matplotlib.legend.Legend at 0x23c09ab30d0>
 
 
 
@@ -242,11 +239,11 @@ The first approach, which is simpler, constructs a diagonal covariance matrix. T
 
 ```math
 \begin{align*}
-\bar{\theta^2} = \frac{1}{T} \sum_{i=1}^T \theta_i^2, \quad \Sigma_{diag} = \Sigma{diag}(\bar{\theta^2} - \theta_{SWA}^2)
+    \bar{\theta^2} = \frac{1}{T} \sum_{i=1}^T \theta_i^2, \quad \Sigma_{diag} = \Sigma{diag}(\bar{\theta^2} - \theta_{SWA}^2)
 \end{align*}
-``` 
+```
 
-The approximate posterior is thus of the form $\mathcal{N}(\theta_{\text{SWA}}, \Sigma_{diag})$.
+The approximate posterior is thus of the form $\mathcal{N}(\theta_{SWA}, \Sigma_{diag})$.
 
 ![SWAG Diag](figs/SWAG_Diag.png)
 
@@ -302,8 +299,7 @@ Once we have the statistics to approximate the posterior as a Gaussian, we can s
 ```math
 \begin{align*}
     \tilde{\theta} &= \theta_{\text{SWA}} + \frac{1}{\sqrt{2}} \Sigma_{\text{diag}}^{1/2} z_1
-\end{align*}
-```
+\end{align*}```
 
 where $z_1 \sim \mathcal{N}(0, I_d)$ and $d$ is the number of parameters in the model.
 
@@ -321,10 +317,10 @@ def sample_swag_diag(w_swa, sqrt_var_vec):
 
 
 ```python
-w_swa, var_vec = swag_diagonal(pre_train_model.state_dict(), train_set, 0.01, 50, 10)
+w_swa, var_vec = swag_diagonal(pre_train_model.state_dict(), train_set, 0.01, 100, 10)
 ```
 
-    100%|██████████████████████████████████████████████████████████████████████████████████| 50/50 [00:01<00:00, 39.30it/s]
+    100%|████████████████████████████████████████████████████████████████████████████████| 100/100 [00:02<00:00, 33.68it/s]
     
 
 ### Bayesian Model Averaging  
@@ -338,7 +334,7 @@ def bma(X, w_swa, var_vec, n_samples=100):
     model = Model().to(device) 
     sqrt_var_vec = var_vec.sqrt() # var vec is put to sqrt once for all to gain computation time
     for i in tqdm(range(n_samples)):
-        sampled_params = sample_swag_diag(w_swa, var_vec)
+        sampled_params = sample_swag_diag(w_swa, sqrt_var_vec)
         model.load_flattened_weights(sampled_params)
         with torch.no_grad():
             model.eval()
@@ -361,7 +357,7 @@ X_extended = torch.linspace(-10, 10, 500, device=device)
 mean_pred, std_pred, preds = bma(X_extended.unsqueeze(1), w_swa, var_vec, n_samples=500)
 ```
 
-    100%|██████████████████████████████████████████████████████████████████████████████| 500/500 [00:00<00:00, 1186.45it/s]
+    100%|██████████████████████████████████████████████████████████████████████████████| 500/500 [00:00<00:00, 1414.25it/s]
     
 
 
@@ -370,7 +366,6 @@ fig, axes = plt.subplots(1, 2, figsize=(14, 6))
 axes[0].set_title('BNN Sample Predictions')
 axes[0].set_xlim(-12, 12)
 axes[0].plot(X.detach(), y, 'b.', label='Observations')
-# axes[0].plot(X_extended.detach().cpu(), mean_pred.detach().cpu(), 'r', label='Mean prediction')
 axes[0].legend()
 
 for pred in preds:
@@ -380,12 +375,13 @@ mean_pred = mean_pred.detach().cpu()
 std_pred = std_pred.detach().cpu()
 
 axes[1].set_title('Mean Prediction with Uncertainty')
+axes[1].plot(X_extended.detach().cpu(), mean_pred.detach().cpu(), 'r', label='Mean prediction')
 axes[1].plot(X.detach(), y.numpy(), 'b.', label='Observations')
 axes[1].fill_between(
     X_extended.detach().cpu().squeeze(),
     (mean_pred - std_pred).squeeze(),
     (mean_pred + std_pred).squeeze(),
-    color='g',
+    color='r',
     alpha=0.3,
     label='Uncertainty'
 )
@@ -401,31 +397,29 @@ plt.show()
     
 
 
-prediction is correct, but uncertainty isn't very relevant, SWAG diag hasn't properly approximated the posterior distribution.
+The prediction is accurate, and the uncertainty appears appropriate given the simplicity of the problem. Sampling the posterior is straightforward in this case, but a more complex model would likely yield narrower uncertainty estimates and improved performance. Theses choices were made to illustrate the SWAG diagonal algorithm. To enhance posterior estimation, let's introduce a more advanced version of SWAG:
 
 # SWAG low rank plus 
 
 The full SWAG algorithm extends the diagonal covariance approximation with a low-rank plus diagonal covariance. The sample covariance of the SGD iterates can be written as the sum of outer products:
+
 ```math
 \begin{align*}
-    \Sigma = \frac{1}{T-1} \sum_{i=1}^T (\theta_i - \theta_{\text{SWA}})( \theta_i - \theta_{\text{SWA}})^{\top} 
-\end{align*}
-```
-Since $\theta_{\text{SWA}}$ is not accessible during training, we approximate the covariance as:
+    \Sigma = \frac{1}{T-1} \sum_{i=1}^T (\theta_i - \theta_{SWA})( \theta_i - \theta_{SWA})^{\top} 
+\end{align*}```
+
+Since $\theta_{SWA}$ is not accessible during training, we approximate the covariance as:
 
 ```math
 \begin{align*}
     \Sigma \approx \frac{1}{T-1} (\theta_i - \bar{\theta_i})(\theta_i - \bar{\theta_i})^{\top} = \frac{1}{T-1} DD^{\top}
-\end{align*}
-```
+\end{align*}```
 
 where $D$ is the deviation matrix with columns $D_i = (\theta_i - \bar{\theta}_i)$ and $\bar{\theta}_i$ is the running average. As storing all the deviations can be too complex in terms of space, we keep the last $K$ deviations of training, resulting in the low-rank approximation:
 
-```math
-\begin{align*}
+```math\begin{align*}
 \Sigma_{\text{low-rank}} = \frac{1}{K-1} \cdot \hat{D} \hat{D}^{\top}
-\end{align*}
-```
+\end{align*}```
 
 where $\hat{D}$ is composed of the deviations from the last $K$ steps.
 
@@ -490,27 +484,25 @@ def swag_low_rank(pre_trained_weights, train_set, lr, steps, update_freq, K, opt
 
 
 ```python
-w_swa, var_vec, D = swag_low_rank(pre_train_model.state_dict(), train_set, 0.01, 50, 10, 25)
+w_swa, var_vec, D = swag_low_rank(pre_train_model.state_dict(), train_set, 0.01, 100, 10, 25)
 ```
 
-    100%|██████████████████████████████████████████████████████████████████████████████████| 50/50 [00:01<00:00, 35.69it/s]
+    100%|███████████████████████████████████████████████████████████████████████████████| 100/100 [00:00<00:00, 124.56it/s]
     
 
 The approximate posterior is now of the form:
 
 ```math
 \begin{align*}
-    \mathcal{N}(\theta_{\text{SWA}}, \frac{1}{2} \cdot (\Sigma_{\text{diag}} + \Sigma_{\text{low-rank}})).
-\end{align*}
-``` 
+    \mathcal{N}(\theta_{SWA}, \frac{1}{2} \cdot (\Sigma_{diag} + \Sigma_{low-rank})).
+\end{align*}```
 
 To sample from it, we update the identity:
 
 ```math
 \begin{align*}
-    \tilde{\theta} &= \theta_{\text{SWA}} + \frac{1}{\sqrt{2}} \Sigma_{\text{diag}}^{1/2} z_1 + \frac{1}{\sqrt{2(K-1)}} D z_2.
-\end{align*}
-```
+    \tilde{\theta} &= \theta_{SWA} + \frac{1}{\sqrt{2}} \Sigma_{diag}^{1/2} z_1 + \frac{1}{\sqrt{2(K-1)}} D z_2.
+\end{align*}```
 
 with $z_2 \sim \mathcal{N}(0, I_K)$.
 
@@ -560,7 +552,7 @@ X_extended = torch.linspace(-10, 10, 500, device=device)
 mean_pred, std_pred, preds = bma(X_extended.unsqueeze(1), w_swa, var_vec, D, n_samples=500)
 ```
 
-    100%|██████████████████████████████████████████████████████████████████████████████| 500/500 [00:00<00:00, 1082.54it/s]
+    100%|██████████████████████████████████████████████████████████████████████████████| 500/500 [00:00<00:00, 3960.37it/s]
     
 
 
@@ -584,7 +576,7 @@ axes[1].fill_between(
     X_extended.detach().cpu().squeeze(),
     (mean_pred - std_pred).squeeze(),
     (mean_pred + std_pred).squeeze(),
-    color='g',
+    color='r',
     alpha=0.3,
     label='Uncertainty'
 )
@@ -776,6 +768,7 @@ for i in random_indices:
         col = plotted_images % 5  
         
         axs[row, col].imshow(X_test[i, :].cpu().detach().numpy().reshape(28, 28), cmap='gray')
+        
         axs[row, col].axis('off') 
 
         actual_label = y_test[i].item()
