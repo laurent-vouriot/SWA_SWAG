@@ -298,8 +298,9 @@ Once we have the statistics to approximate the posterior as a Gaussian, we can s
 
 ```math
 \begin{align*}
-    \tilde{\theta} &= \theta_{\text{SWA}} + \frac{1}{\sqrt{2}} \Sigma_{\text{diag}}^{1/2} z_1
-\end{align*}```
+    \tilde{\theta} &= \theta_{SWA} + \frac{1}{\sqrt{2}} \Sigma_{diag}^{1/2} z_1
+\end{align*}
+```
 
 where $z_1 \sim \mathcal{N}(0, I_d)$ and $d$ is the number of parameters in the model.
 
@@ -406,20 +407,23 @@ The full SWAG algorithm extends the diagonal covariance approximation with a low
 ```math
 \begin{align*}
     \Sigma = \frac{1}{T-1} \sum_{i=1}^T (\theta_i - \theta_{SWA})( \theta_i - \theta_{SWA})^{\top} 
-\end{align*}```
+\end{align*}
+```
 
 Since $\theta_{SWA}$ is not accessible during training, we approximate the covariance as:
 
 ```math
 \begin{align*}
     \Sigma \approx \frac{1}{T-1} (\theta_i - \bar{\theta_i})(\theta_i - \bar{\theta_i})^{\top} = \frac{1}{T-1} DD^{\top}
-\end{align*}```
+\end{align*}
+```
 
 where $D$ is the deviation matrix with columns $D_i = (\theta_i - \bar{\theta}_i)$ and $\bar{\theta}_i$ is the running average. As storing all the deviations can be too complex in terms of space, we keep the last $K$ deviations of training, resulting in the low-rank approximation:
 
 ```math\begin{align*}
 \Sigma_{\text{low-rank}} = \frac{1}{K-1} \cdot \hat{D} \hat{D}^{\top}
-\end{align*}```
+\end{align*}
+```
 
 where $\hat{D}$ is composed of the deviations from the last $K$ steps.
 
@@ -495,14 +499,16 @@ The approximate posterior is now of the form:
 ```math
 \begin{align*}
     \mathcal{N}(\theta_{SWA}, \frac{1}{2} \cdot (\Sigma_{diag} + \Sigma_{low-rank})).
-\end{align*}```
+\end{align*}
+```
 
 To sample from it, we update the identity:
 
 ```math
 \begin{align*}
     \tilde{\theta} &= \theta_{SWA} + \frac{1}{\sqrt{2}} \Sigma_{diag}^{1/2} z_1 + \frac{1}{\sqrt{2(K-1)}} D z_2.
-\end{align*}```
+\end{align*}
+```
 
 with $z_2 \sim \mathcal{N}(0, I_K)$.
 
